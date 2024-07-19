@@ -18,6 +18,8 @@ using AzureDevOpsTestConnector.Services.Interfaces;
 using AzureDevOpsTestConnector.Services.DiService;
 using EnvDTE;
 using System.ComponentModel.Design;
+using System.Security.Policy;
+using ADOTestConnector64.Extensions;
 
 namespace ADOTestConnector64
 {
@@ -456,6 +458,22 @@ namespace ADOTestConnector64
             return returnString;
         }
 
+        private string FullHeaderValuePairToString(Dictionary<string, List<string>> headerValuePairs, int index)
+        {
+            var returnString = "";
+            foreach (var headerValuePair in headerValuePairs)
+            {
+                returnString += headerValuePair.Key + $": \"{headerValuePair.Value[index]}\",";
+            }
+
+            if (returnString.Length > 0)
+            {
+                returnString = returnString.Substring(0, returnString.Length - 1);
+            }
+
+            return returnString;
+        }
+
         private string ReplaceSpecflowStepWithListItems(string input, Dictionary<string, List<string>> headerValuePairs, int valueIndex)
         {
             for (int i = 0; i < headerValuePairs.Count; i++)
@@ -550,7 +568,8 @@ namespace ADOTestConnector64
 
         private string ExtractTestCaseReferenceId(string fullLine, TagPattern tagPattern)
         {
-            Regex pattern = new Regex($"{ParseRegexString(tagPattern.Prefix)}([\\d,]*){ParseRegexString(tagPattern.Suffix)}");
+            var regex = $"(?:{ParseRegexString(tagPattern.Prefix)})([\\d, ]*)(?:{ParseRegexString(tagPattern.Suffix)})";
+            Regex pattern = new Regex(regex);
             var match = pattern.Match(fullLine);
 
             return match.Groups[match.Groups.Count - 1].Value;
@@ -795,7 +814,7 @@ namespace ADOTestConnector64
                     {
                         var testCaseIds = splitTestCaseReferenceIds.Length >= h + 1 ? splitTestCaseReferenceIds[h].Trim() : "";
                         var paramString = HeaderValuePairToString(headerValuePairs, h);
-                        var enhancedMethodName = Regex.Replace(CultureInfo.InvariantCulture.TextInfo.ToTitleCase(methodName), "[^a-zA-Z0-9_.]+", string.Empty, RegexOptions.Compiled) + $"({paramString})";
+                        var enhancedMethodName = Regex.Replace(methodName.FirstCharToUpper(), "[^a-zA-Z0-9_.]+", string.Empty, RegexOptions.Compiled) + $"({paramString})";
                         var enhancedSteps = new List<string>();
                         foreach (var step in specflowSteps)
                         {
@@ -807,7 +826,7 @@ namespace ADOTestConnector64
                         testCases.Add(new TestCaseData
                         {
                             TestCaseName = enhancedMethodName,
-                            ReadableTestCaseName = readableMethodName,
+                            ReadableTestCaseName = readableMethodName + $" ({FullHeaderValuePairToString(headerValuePairs, h)})",
                             TestCaseId = testCaseIds,
                             TestCaseSignatureIndex = testCaseSignatureIndex,
                             ExistingTestCaseReferenceIndex = testReferenceIndex,
@@ -820,7 +839,7 @@ namespace ADOTestConnector64
                 {
                     testCases.Add(new TestCaseData
                     {
-                        TestCaseName = methodName,
+                        TestCaseName = Regex.Replace(methodName.FirstCharToUpper(), "[^a-zA-Z0-9_.]+", string.Empty, RegexOptions.Compiled),
                         ReadableTestCaseName = readableMethodName,
                         TestCaseId = methodTestCaseId,
                         TestCaseSignatureIndex = testCaseSignatureIndex,
