@@ -822,11 +822,10 @@ namespace ADOTestConnector64
                         }
 
                         //add enhanced tests to test case data
-
                         testCases.Add(new TestCaseData
                         {
                             TestCaseName = enhancedMethodName,
-                            ReadableTestCaseName = readableMethodName + $" ({FullHeaderValuePairToString(headerValuePairs, h)})",
+                            ReadableTestCaseName = readableMethodName + (headerValuePairs.ElementAt(0).Value.Count > 1 ? $" ({FullHeaderValuePairToString(headerValuePairs, h)})" : ""),
                             TestCaseId = testCaseIds,
                             TestCaseSignatureIndex = testCaseSignatureIndex,
                             ExistingTestCaseReferenceIndex = testReferenceIndex,
